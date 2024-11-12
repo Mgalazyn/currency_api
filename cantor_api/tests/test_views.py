@@ -15,6 +15,7 @@ class CurrencyExchangeAPITests(APITestCase):
             rate=1.2000
         )
 
+
     def test_currency_data_view(self):
         """Test the CurrencyDataView endpoint"""
         url = reverse('currency-list') 
@@ -26,6 +27,7 @@ class CurrencyExchangeAPITests(APITestCase):
         self.assertIn({'code': 'USD'}, response.data)
         print("TEST1 - passed")
 
+
     def test_exchange_rate_view(self):
         """Test the ExchangeRateView endpoint"""
         url = reverse('exchange-rate', args=['EUR', 'USD'])  
@@ -36,6 +38,7 @@ class CurrencyExchangeAPITests(APITestCase):
         self.assertAlmostEqual(float(response.data['exchange_rate']), float(self.exchange_rate.rate), places=4)
         print("TEST2 - passed")
 
+
     def test_exchange_rate_view_not_found(self):
         """Test the ExchangeRateView for a non-existing currency pair"""
         url = reverse('exchange-rate', args=['EUR', 'JPY'])
@@ -44,6 +47,7 @@ class CurrencyExchangeAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data, {"error": "Currency pair not found"})
         print("TEST3 - passed")
+
 
     def test_load_initial_data_view(self):
         """Test the LoadInitialDataView endpoint"""
@@ -54,3 +58,30 @@ class CurrencyExchangeAPITests(APITestCase):
         self.assertEqual(response.data, {"message": "Data loaded successfully."})
         self.assertTrue(Currency.objects.count() > 0)
         print("TEST4 - passed")
+
+
+    def test_currency_data_view_empty(self):
+        """Test the CurrencyDataView with no currencies avaliable"""
+        Currency.objects.all().delete()
+        url = reverse('currency-list')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0) # we expect empty list of currencies
+        print('TEST5 - passed')
+
+
+    def test_load_initial_data_twice(self):
+        """Test the LoadInitialDataView to see if duplicates are not created"""
+        url = reverse('load-initial-data')
+        response1 = self.client.get(url)
+        response1_currency_count = Currency.objects.count()
+
+        response2 = self.client.get(url)
+
+        self.assertEqual(response1.status_code, status.HTTP_200_OK)
+        self.assertEqual(response2.status_code, status.HTTP_200_OK)
+
+        #Check if number of objects in DB is the same after second GET
+        self.assertEqual(Currency.objects.count(), response1_currency_count) 
+        print("TEST6 - passed")
